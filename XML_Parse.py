@@ -8,7 +8,6 @@ import operator
 import numpy as np
 import pandas as pd
 import networkx as nx
-# import igraph as ig
 import plotly as py
 import plotly.graph_objs as go
 
@@ -86,17 +85,17 @@ def dict_value_replace(dict, key_vector, new_value):
 
     for key in dict.keys():
         if key == key_vector:
-            dict[key] = new_value
+            dict[ key ] = new_value
 
 def mergeDict(dict1, dict2):
-   """Merges two dictionaries together so that the values are appended into a list"""
+    """Merges two dictionaries together so that the values are appended into a list"""
 
-   dict3 = {**dict1, **dict2}
-   for key, value in dict3.items():
-       if key in dict1 and key in dict2:
-           dict3[key] = [value, dict1[key]]
+    dict3 = {**dict1, **dict2}
+    for key, value in dict3.items():
+        if key in dict1 and key in dict2:
+            dict3[ key ] = [ value, dict1[ key ] ]
 
-   return dict3
+    return dict3
 
 #######################################################################################################################
 
@@ -110,11 +109,11 @@ def skeleton_id(root):
 
 def skeleton_comment(root):
     """Function to parse through XML for skeleton comments"""
-    skeleton_comments = []
+    skeleton_comments = [ ]
     for thing in root.iter('thing'):
         try:
-            if thing.attrib['comment']:
-                skeleton_comments.append(thing.attrib['comment'])
+            if thing.attrib[ 'comment' ]:
+                skeleton_comments.append(thing.attrib[ 'comment' ])
         except(KeyError):
             skeleton_comments.append('.')
             continue
@@ -249,7 +248,7 @@ def find_soma(root):
     node_comments_dict = dict(zip(node_ids, comments_lowercase))
 
     # Finding the Soma ID by searching through the comments
-    soma_ID = []
+    soma_ID = [ ]
     soma_ID.append(dict_search(node_comments_dict, 'soma'))
     for x in soma_ID:
         if x is None:
@@ -265,8 +264,8 @@ def soma_df(root):
     # Determining the Soma of each skeleton and creating a dataframe with its position:
     Soma_ID = find_soma(root)
     soma_position = node_position_df['Node ID'].isin(Soma_ID)
-    soma_df = node_position_df[soma_position]
-    soma_df = soma_df.rename(columns={'Node ID':'Soma ID'})
+    soma_df = node_position_df[ soma_position ]
+    soma_df = soma_df.rename(columns={'Node ID': 'Soma ID'})
 
     return soma_df
 
@@ -283,11 +282,11 @@ def source_target_pos_df(root):
 
     # Source Node and position df:
     source_df = pd.DataFrame(source_list, columns=['Source ID'])
-    source_df['Source ID'] = source_df['Source ID'].astype(int)
+    source_df['Source ID'] = source_df[ 'Source ID' ].astype(int)
     source_position_df = pd.merge(source_df, node_pos_df(root), how='left', left_on='Source ID', right_on='Node ID')
     # Target Node and position df:
-    target_df = pd.DataFrame(target_list, columns=['Target ID'])
-    target_df['Target ID'] = target_df['Target ID'].astype(int)
+    target_df = pd.DataFrame(target_list, columns=[ 'Target ID' ])
+    target_df['Target ID'] = target_df[ 'Target ID' ].astype(int)
     target_position_df = pd.merge(target_df, node_pos_df(root), how='left', left_on='Target ID', right_on='Node ID')
     # Source and Target final df:
     source_target_df_tmp = pd.merge(source_position_df, target_position_df, left_index=True, right_index=True)
@@ -323,6 +322,50 @@ def skeleton_information(root):
     XML_info_df = pd.concat([skeleton_df, node_information_df], axis=1)
 
     return XML_info_df
+
+def node_horizontal_list(root):
+    """Function to create a list of all the node information (id, radius, x, y, z, comment)"""
+
+    node_info = [ ]
+    # Parsing through each of the nodes for the required information:
+    for node in root.iter('node'):
+        node_id_vect = node.attrib['id']
+        node_radius_vect = node.attrib['radius']
+        x = int(node.attrib['x'])
+        y = int(node.attrib['y'])
+        z = int(node.attrib['z'])
+        node_comment_ls = comments(node)
+        # Adding all of the node information to a master nodes list:
+        node_info.append(node_id_vect)
+        node_info.append(node_radius_vect)
+        node_info.append(x)
+        node_info.append(y)
+        node_info.append(z)
+        node_info.extend(node_comment_ls)
+    return node_info
+
+def XML_info_node_rows(root):
+    """The purpose of this function is to produce a csv file containing all the XML file data with nodes aligned by row rather than by column"""
+
+    # First thing to do is to create a list with the skeleton information:
+    final_df = pd.DataFrame()
+    for thing in root.iter('thing'):
+        skeleton_ids = thing.attrib['id']
+        skeleton_comments = skeleton_comment(thing)
+        # Creating a list of node information per skeleton:
+        node_info = node_horizontal_list(thing)
+        # Compiling all of the information into a single final list:
+        final_list = [ ]
+        final_list.append(skeleton_ids)
+        final_list.extend(skeleton_comments)
+        final_list.extend(node_info)
+        # Compiling the list into a dataframe with each skeleton as a row:
+        final_df = final_df.append(pd.Series(final_list), ignore_index=True)
+    # Renaming all of the columns within the final dataframe (MAX of 3 nodes in the dataset for this dataframe):
+    final_df.columns = ["Skeleton ID", "Skeleton Comments", "Node_1 ID", "Node_1 Radius", "X_1", "Y_1", "Z_1",
+                        "Node_1 Comment", "Node_2 ID", "Node_2 Radius", "X_2", "Y_2", "Z_2", "Node_2 Comment",
+                        "Node_3 ID", "Node_3 Radius", "X_3", "Y_3", "Z_3", "Node_3 Comment"]
+    return final_df
 
 #######################################################################################################################
 

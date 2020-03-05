@@ -1,5 +1,6 @@
 import os
 import XML_Parse as parse
+import Euclidean_Distance as ed
 
 import pandas as pd
 import numpy as np
@@ -23,6 +24,11 @@ def end_pt_df(root):
 
     return endpoints_position_df
 
+def average_list(list):
+    """Finds the average value of a list"""
+
+    return sum(list)/len(list)
+
 #######################################################################################################################
 
 # Data Analysis:
@@ -37,8 +43,8 @@ def apical_basal_classifier(root):
 
     # Creating an empty list that will contain whether each end node is apical or basal and two variables to represent the y positions of soma and end nodes:
     class_list = []
-    endpts_y = endpoints_position_df.loc[:, ('y')]
-    soma_y = soma_df.loc[:, ('y')]
+    endpts_y = endpoints_position_df.loc[:, (data_ori)]
+    soma_y = soma_df.loc[:, (data_ori)]
     # Comparing the position of the end node and the soma to determine if the branch is apical or basal
     for value in endpts_y:
         for soma in soma_y:
@@ -67,9 +73,9 @@ def nodes_from_soma(root):
     soma_df = source_target_df.loc[source_target_df['Source ID'].isin(soma_id)]
     # Determining which of the nodes are apical and basal depending on their 'y' position:
     class_list = []
-    soma = soma_df.loc[0, 'y_x']
+    soma = soma_df.loc[0, 'x_x']
     branch_nodes = soma_df.drop(['Source ID', 'x_x', 'y_x', 'z_x'], axis=1)
-    bny_columns = list(branch_nodes.loc[:, 'y_y'])
+    bny_columns = list(branch_nodes.loc[:, 'x_x'])
     for value in bny_columns:
         if value > soma:
             class_list.append('Apical')
@@ -85,6 +91,7 @@ def nodes_from_soma(root):
     classification_df = pd.concat([soma_df, skeleton_df], axis=1)
 
     return classification_df
+
 
 def nodes_from_soma_dict(root):
     """Purpose to create a dict of the soma's target node and its apical/basal classification"""
@@ -167,5 +174,69 @@ def overlaid_histogram(root):
     )
 
     class_histo.show()
+
+#######################################################################################################################
+
+# Determining data set orientation:
+
+data_ori = input("What coordinate plane is the upward direction in the original data set? (X, Y, or Z coordinate plane): ")
+data_ori.islower()
+
+# Creating a fail safe that checks the correct data orientation:
+
+def check_orientation(root):
+    """Determines the orientation of the data set based on the number of nodes in a direction"""
+
+    final_classx = []
+    final_classy = []
+    final_classz = []
+
+    for thing in parse.root.iter('thing'):
+        soma = parse.soma_df(thing)
+        endpts_df = end_pt_df(thing)
+
+        x_d_list = []
+        y_d_list = []
+        z_d_list = []
+
+        somax = list(soma.loc[:, 'x'])
+        somay = list(soma.loc[:, 'y'])
+        somaz = list(soma.loc[:, 'z'])
+
+        endptsx = list(endpts_df.loc[:, 'x'])
+        endptsy = list(endpts_df.loc[:, 'y'])
+        endptsz = list(endpts_df.loc[:, 'z'])
+
+        for soma_value in somax:
+            for value in endptsx:
+                distancex = abs(soma_value - value)
+                x_d_list.append(distancex)
+        for soma_value in somay:
+            for value in endptsy:
+                distancey = abs(soma_value - value)
+                y_d_list.append(distancey)
+        for soma_value in somaz:
+            for value in endptsz:
+                distancez = abs(soma_value - value)
+                z_d_list.append(distancez)
+
+        final_classx.append(max(x_d_list))
+        final_classy.append(max(y_d_list))
+        final_classz.append(max(z_d_list))
+
+    x = average_list(final_classx)
+    y = average_list(final_classy)
+    z = average_list(final_classz)
+
+    avg_dict = dict({'x': x, 'y': y, 'z': z})
+    # print(avg_dict)
+
+    return max(avg_dict, key=avg_dict.get)
+
+# Should user not specify the correct orientation the following will be run:
+
+if data_ori == '':
+    data_ori = check_orientation(parse.root)
+    print("Predicted orientation: ", data_ori)
 
 #######################################################################################################################

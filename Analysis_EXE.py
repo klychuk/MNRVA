@@ -16,12 +16,20 @@ import pandas as pd
 
 parsing_option = input("Excel file with all object information? (Y or N): ")
 parsing_option.islower()
+if parsing_option is 'y':
+    horizontal_orientation = input("Would you like node information to be separate columns as a horizontal output? WARNING: do not use with large data sets (Y or N): ")
+    horizontal_orientation.islower()
 branch_class_option = input("Run Branch Classification (Apical vs. Basal) Analysis? (Y or N): ")
 branch_class_option.islower()
 branch_number_option = input("Run Branch Number per Skeleton Analysis? (Y or N): ")
 branch_number_option.islower()
-euclidean_distance_option = input("Run Euclidean Distance per Skeleton Analysis? (Y or N): ")
+euclidean_distance_option = input("Calculate dendritic distance? (Y or N): ")
 euclidean_distance_option.islower()
+if euclidean_distance_option is 'y':
+    total_eu_option = input("Do you want the total euclidean distance per skeleton? (Y or N): ")
+    total_eu_option.islower()
+    node_eu_option = input("Do you want the euclidean distance per node? (Y or N): ")
+    node_eu_option.islower()
 visualization_option = input("Skeleton reference? (Y or N): ")
 visualization_option.islower()
 swc_option = input("Convert XML to SWC file format? This will output a .csv file with the correct format for neuromorph files (Y or N): ")
@@ -34,20 +42,28 @@ print("\n")
 
 #######################################################################################################################
 
-# Analyses:
-
-starttime = datetime.now()
+# Following section will run the analyses as input above:
 
 # Parsed Excel Sheet
 starttime_xml = datetime.now()
-if parsing_option is 'y':
-    XML_info_df = pd.DataFrame()
-    for thing in xparse.root.iter('thing'):
-        XML_info_df = XML_info_df.append(xparse.skeleton_information(thing), ignore_index=True)
-    xparse.save_csv_df(XML_info_df, 'Skeleton_Information.csv')
 
-    XML_time = datetime.now() - starttime_xml
-    print("XML Parsing Completion Time: ", XML_time)
+if parsing_option is 'y':
+
+    XML_final_df = pd.DataFrame()
+    for thing in xparse.root.iter('thing'):
+        XML_final_df = XML_final_df.append(xparse.skeleton_information(thing), ignore_index=True)
+    xparse.save_csv_df(XML_final_df, 'skeleton_information.csv')
+
+    XML_time_n = datetime.now() - starttime_xml
+    print("XML Parsing Completion Time: ", XML_time_n)
+
+    if horizontal_orientation is 'y':
+        final_df = xparse.XML_info_node_rows(xparse.root)
+        xparse.save_csv_df(final_df, 'skeleton_information_horizontal.csv')
+        print(final_df)
+
+        XML_time = datetime.now() - starttime_xml
+        print("XML Parsing Completion Time: ", XML_time)
 
 # Branch Classification (Apical vs. Basal)
 starttime_bc = datetime.now()
@@ -77,11 +93,18 @@ if branch_number_option is 'y':
 # Euclidean Distance Analysis:
 starttime_ed = datetime.now()
 if euclidean_distance_option is 'y':
-    ed_per_skeleton_df = pd.DataFrame()
-    for thing in xparse.root.iter('thing'):
-        ed_per_skeleton_df = ed_per_skeleton_df.append(ed.ed_per_skeleton(thing), ignore_index=True)
-    xparse.save_csv_df(ed_per_skeleton_df, 'euclidean_distance_per_skeleton.csv')
-    ed.ed_histogram('euclidean_distance_per_skeleton.csv')
+    if total_eu_option is 'y':
+        ed_per_skeleton_df = pd.DataFrame()
+        for thing in xparse.root.iter('thing'):
+            ed_per_skeleton_df = ed_per_skeleton_df.append(ed.ed_per_skeleton(thing), ignore_index=True)
+        xparse.save_csv_df(ed_per_skeleton_df, 'euclidean_distance_per_skeleton.csv')
+        ed.ed_histogram('euclidean_distance_per_skeleton.csv')
+    if node_eu_option is 'y':
+        ed_per_node_df = pd.DataFrame()
+        for thing in xparse.root.iter('thing'):
+            ed_per_node_df = ed_per_node_df.append(ed.ed_per_node(thing), ignore_index=True)
+        xparse.save_csv_df(ed_per_node_df, 'euclidean_distance_per_node.csv')
+        # ed.ed_histogram('euclidean_distance_per_node.csv')
 
     ed_time = datetime.now() - starttime_ed
     print("Euclidean Distance Completion Time: ", ed_time)

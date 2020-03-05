@@ -1,15 +1,15 @@
 # About
 
-This project seeks to address connectomic data analysis through the
+This project seeks to address data analysis through the
 development of a series of comparative analysis tools for connectomic data in an effort to make a
-foundational basis of analysis for all researchers in connectomics. These scripts include Scholl’s
-analysis, total dendritic branch number per neuron (dendritic density), and Euclidean distance.
-This work will function as a base for further analytical tools that will be developed for similar data. To encourage reproducibility and collaboration, all scripts are available through GitHub
+foundational basis of analysis for all researchers in connectomics. These scripts include total dendritic branch number per neuron (dendritic density), and Euclidean distance.
+This work will function as a base line for further analytical tools that will be developed for similar data.
+To encourage reproducibility and collaboration, all scripts are available open source through GitHub
 and Google Colab.
 
 Currently this analysis package is designed for Knossos XML files containing traced skeletons.
 
-Google Colab Link: 
+Google Colab Link: *Coming Soon* 
 
 Please see the Kasthuri Lab for more information: https://microbiome.uchicago.edu/directory/bobby-kasthuri
 
@@ -68,17 +68,22 @@ files in the output directory you input.
 ### Module Dependencies:
 
 There are a few additional packages used for visualization and data management that are required to run this analysis module.
+It is recommended that you install with Anaconda and create a separate conda environment.
 Follow the instructions given in the links for download. The list is given below:
 
-* Pandas ()
-* Networkx ()
-* Plotly ()
+* Python 3.7.3
+* Pandas 0.25.0 (https://pandas.pydata.org/pandas-docs/stable/install.html)
+* Numpy 1.17.2
+* Matplotlib 3.1.1
+* Igraph 0.7.1 (https://igraph.org/python/)
+* Plotly 4.4.1 (https://plot.ly/python/getting-started/)
+* NetworkX 2.4 (https://networkx.github.io/)
 
 ### Visualization
 
 There is an option to create a visualization of the KNOSSOS skeletons for reference. This requires two additional packages: 
-plotly and igraph. The script will automatically install these packages on Mac and LInux OS, but for Windows users please 
-follow the additional instructions given below:
+plotly and igraph. There are additional installation steps for Windows users that are outlined more in depth at the 
+following links given below:
 
 Plotly: https://plot.ly/python/getting-started/ 
 
@@ -86,10 +91,44 @@ Igraph: https://igraph.org/python/
 
 ### Analyses:
 
+This section discusses each of the analyses and their required input. 
+
+##### Terminology Reference:
+
+Skeleton: A traced object in KNOSSOS, parent object in .xml that contains node and edge information (denoted as 'thing' within KNOSSOS
+annotation .xml file)
+
+__Node__: marked point within skeleton object, child of skeleton object in .xml (denoted as 'node' within KNOSSOS annotation file)
+
+__Edge__: line between two nodes, determined by 'source' and 'target' nodes as given by KNOSSOS annotation file
+
+__.csv file format__: a tab delimited file format that can be opened with Microsoft Excel or Libre Sheets
+
+__.swc file format__: tab delimited file format used for neuromorph data
+
 #### XML Parse:
 
 The purpose of this script is to parse through the KNOSSOS .xml file input by the user. This contains all of the functions
 to organize and clean the given data prior to running the analyses. 
+
+When running the analysis the user will be asked if they want an "Excel file with all object information". This will produce
+a .csv file ('skeleton_information.csv') containing all of the node and skeleton information in the following format:
+
+| Skeleton ID | Skeleton Comments | Node ID | Node Radius | X | Y | Z | Node Comment |
+|-------------|-------------------|---------|-------------|---|---|---|--------------|
+|1            |comment 1          |10       |radius 1     |x1 |y1 |z1 | comment      |
+
+Should the user than answer 'yes' to this, they will be prompted "would you like node information to be separate columns
+as a horizontal output?". Answering yes to this prompt will create a .csv file with each node and its associated information 
+as a **separate column**. This is not recommended for larger data sets with a multitude of nodes per skeleton and is at 
+this time limited to three nodes per skeleton. *Please keep this in mind when using this analysis.* The output is demonstrated
+below:
+ 
+| Skeleton ID | Skeleton Comments | Node_1 ID | Node_1 Radius | X_1 | Y_1 | Z_1 | Node_1 Comment | Node_2 ID | Node_2 Radius | X_2 | Y_2 | Z_2 | Node_2 Comment | Node_3 ID | Node_3 Radius | X_3 | Y_3 | Z_3 | Node_3 Comment |
+|-------------|-------------------|-----------|---------------|-----|-----|-----|----------------|-----------|---------------|-----|-----|-----|----------------|-----------|---------------|-----|-----|-----|----------------|
+|1            |comment 1          |10         |radius 1       | x1  |y1   |z1   | comment        |20         |radius 2       | x2  |y2   |z2   | comment        |30         |radius 3       | x3  |y3   |z3   | comment        |
+
+Should the skeleton contain less than 3 nodes the columns for the unfilled node information will be blank in the .csv file.
 
 #### Branch Number
 
@@ -135,15 +174,16 @@ as "Soma" in the original KNOSSOS annotation file, or are the node with the larg
 
 #### Euclidean Distance
 
-The Euclidean distance analysis will output a csv file with the Skeleton ID and the total length of all its branches in 
-the format demonstrated below: 
+The Euclidean distance analysis will either output a csv file with the Skeleton ID and the total length of all its branches,
+or a csv file with the distance between all of the individual nodes. The user has the option to select which output they
+want. The format for the csv with the total euclidean distance per skeleton is demonstrated below: 
 
 |Skeleton ID | Total Euclidean Distance|
 |------------|-------------------------|
 |1           |value                    |
 |2           |value2                   |
 
-Additionally, the analysis will output a histogram with the x-axis being the total euclidean distance and the y-axis 
+Additionally, the total euclidean distance analysis will output a histogram with the x-axis being the total euclidean distance and the y-axis 
 being the number of neurons.
 
 *Skeleton ID*:
