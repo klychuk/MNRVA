@@ -12,7 +12,7 @@ import plotly as py
 import plotly.graph_objs as go
 
 #######################################################################################################################
-
+#Chunk 1
 # Creating argparse requirements for running script through the python terminal:
 
 parser = argparse.ArgumentParser(description='XML Parsing Script for Knossos Annotations')
@@ -30,14 +30,14 @@ os.chdir(output_file)
 print('\nInput file: ', args.in_file, '\n')
 
 #######################################################################################################################
-
+#Chunk2
 # Using Element tree to parse through the give input XML file:
 
 tree = ET.parse(args.in_file)
 root = tree.getroot()
 
 #######################################################################################################################
-
+#Chunk3
 # Required Functions for data management and storage:
 
 def merge(start_node, end_node):
@@ -98,7 +98,7 @@ def mergeDict(dict1, dict2):
     return dict3
 
 #######################################################################################################################
-
+#Chunk4
 # Parsing through XML file for skeleton information:
 
 def skeleton_id(root):
@@ -121,7 +121,7 @@ def skeleton_comment(root):
     return skeleton_comments
 
 #######################################################################################################################
-
+#chunk5
 # Parsing through XML file for node information:
 
 def node_id(root):
@@ -199,7 +199,7 @@ def node_information_dict(root):
     return information
 
 #######################################################################################################################
-
+#Chunk6
 # Parsing through XML file for edge information:
 
 def start_node(root):
@@ -229,7 +229,7 @@ def edge_connect(root):
     return edge_connect_vector
 
 #######################################################################################################################
-
+#Chunk 7
 # Parsing through XML file for Soma information:
 
 def find_soma(root):
@@ -270,7 +270,7 @@ def soma_df(root):
     return soma_df
 
 #######################################################################################################################
-
+#chunk 8
 # Functions for Data Management
 
 def source_target_pos_df(root):
@@ -368,7 +368,7 @@ def XML_info_node_rows(root):
     return final_df
 
 #######################################################################################################################
-
+#chunk9
 # Saving Functions
 
 def save_csv_df(dataframe, filename):
