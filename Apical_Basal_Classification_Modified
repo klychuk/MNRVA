@@ -1,0 +1,46 @@
+import os
+import XML_Parse as parse
+import Euclidean_Distance as ED
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+#######################################################################################################################
+
+## Analysis Functions:
+
+# Function to create a pandas dataframe containing the end points and associated positions:
+def end_points_position_df(root):
+    end_points_df = pd.DataFrame(parse.end_points(root), columns=['End Point'])
+    end_points_df['End Point'] = end_points_df['End Point'].astype(int)
+    end_points_position_df = pd.merge(end_points_df, node_pos_df(root), how='left', left_on='End Point', right_on='Node ID')
+    
+    # Merge end points dataframe with soma dataframe:
+    end_points_soma_df= pd.merge(end_points_position_df, parse.soma_df(root), left_index=True, right_index=True)
+    
+    return end_points_soma_df
+
+# Function to calculate the Euclidean Distance between each end point and the soma within a skeleton:
+def ed_per_node(root):
+    # Apply Euclidean Distance formula and add values to a new column in end points and soma dataframe:
+    edt_list = euclidean_distance_formula(end_points_soma_df['x_x'],end_points_soma_df['y_x'],end_points_soma_df['z_x'],end_points_soma_df['x_y'],end_points_soma_df['y_y'],end_points_soma_df['z_y'])
+    end_points_soma_df['Euclidean Distance'] = edt_list
+    
+    return end_points_soma_df
+ 
+# Function to calculate the mean Euclidean Distance, then classify the end point and associated dendrite as apical or basal:
+def ed_classification(root):
+    # Calculate mean Euclidean Distance between each end point and the soma within a skeleton:
+    ed_mean = end_points_soma_df['Euclidean Distance'].mean()
+
+    # Classify end points with Euclidean Distances greater than or equal to the mean as Apical and less than the mean as Basal:
+    end_points_soma_df['Classification'] = np.where(end_points_soma_df['Euclidean Distance'] >= ed_mean, 'Apical', 'Basal')
+    
+    return end_points_soma_df
+    
+    
+###Maybe create another function to determine if dendrite branches directly from soma to add another layer for basal classification?
+
+
+    
+
