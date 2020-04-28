@@ -9,7 +9,7 @@ import networkx as nx
 import plotly as py
 import plotly.graph_objs as go
 
-import igraph as ig
+import jgraph as ig
 import matplotlib.pyplot as plt
 
 #######################################################################################################################

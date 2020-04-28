@@ -141,7 +141,7 @@ if swc_option is 'y':
 
 # Finalization:
 
-print('\nCompleted Analysis: ', xparse.output_file, '\n')
+print(xparse.output_file)
 
 #######################################################################################################################
 
