@@ -2,9 +2,11 @@ import os, sys
 from datetime import datetime
 import XML_Parse as parse
 import Apical_Basal_Classification as AB
-import Node_Renaming as NR
+#import Node_Renaming as NR
 import itertools
 
+import matplotlib.pyplot as plt; plt.rcdefaults()
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
@@ -23,6 +25,8 @@ endpoints_position_df = AB.end_pt_df(root)
 
 # Make data frame with skeleton information:
 XML_final_df = pd.DataFrame()
+#prints empty dataframe
+#print(XML_final_df)
 
 for thing in parse.root.iter("thing"):
     XML_final_df = XML_final_df.append(parse.skeleton_information(thing), ignore_index=True)
@@ -39,6 +43,10 @@ XML_final_df["New_Node_ID"] = XML_final_df["Skeleton_ID"] + "_" + XML_final_df["
 
 # Create soma data frame:
 soma_df = XML_final_df[XML_final_df["Node_Comment"].str.contains("soma|First Node")]
+
+
+#print(XML_final_df)
+#print(soma_df)
 
 # Save to csv:
 #XML_final_df.to_csv("Skeleton information-updated.csv", index = False)
@@ -71,6 +79,41 @@ for Skeleton_ID, merged_endpoints_soma_df in merged_endpoints_soma_df.groupby("S
 
 # Create list of each skeleton data frame:
 skeleton_list_df = [skeletons[x] for x in skeletons]
+
+#print(XML_final_df)
+#print(soma_df)
+#######################################################################################################################
+#creation of classes from the DFs
+
+#Add (self, soma_ID)
+class Neuron:
+    def __init__(self):
+        self.SK_ID = 0
+        self.radius = 0
+        self.euc_dist = 0
+        self.classif = ""
+
+    def get_N_euc(self, inp):
+        #return self.euc_dist
+        pass
+
+    def set_classif(self,inp):
+        self.classif = inp
+
+class Node(Neuron):
+    def __init__(self, SK_ID):
+        self.soma_ID = SK_ID
+        self.node_ID = 0
+        self.parent_ID = 0
+        self.children = []
+        self.end = False
+        self.radius = 0
+
+    def set_end(self):
+        if len(self.children) == 0:
+            self.end = True
+
+#Then create loops to set each variable
 
 #######################################################################################################################
 
@@ -125,11 +168,8 @@ final_classification_df.to_csv('Apical Basal Reclassification.csv', index = Fals
 
 # Print time it took for above analysis:
 analysis_time = datetime.now() - starttime_bc
-print("Analysis Completion Time: ", analysis_time)
+#print("Analysis Completion Time: ", analysis_time)
 
-import matplotlib.pyplot as plt; plt.rcdefaults()
-import numpy as np
-import matplotlib.pyplot as plt
 
 objects = final_classification_df['Node_ID']
 
@@ -137,6 +177,9 @@ plt.bar(objects, final_ed_list, align='center')
 plt.ylabel('ED')
 plt.title('Distribution of ED')
 
+
+#displays the plot upon running
+#commented for testing
 plt.show()
 
 
