@@ -107,13 +107,23 @@ class Node(Neuron):
         self.parent_ID = 0
         self.children = []
         self.end = False
+        self.branch = False
+        self.from_soma = False
         self.radius = 0
 
-    def set_end(self):
+    #this will tell if its an end node or a branching point
+    def classify_node(self):
         if len(self.children) == 0:
             self.end = True
+        if len(self.children) < 1:
+            self.branch = True
 
-#Then create loops to set each variable
+    #This is a direct branching from the soma can use to name branches?
+    def set_direct(self):
+        if self.parent_ID == self.soma_ID:
+            self.from_soma = True
+
+#Then create loops to set each variable with calculation like the one below :) 
 
 #######################################################################################################################
 
