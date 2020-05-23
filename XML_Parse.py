@@ -279,18 +279,39 @@ def source_target_pos_df(root):
     # Creating a list of node sources and targets (connections):
     source_list = start_node(root)
     target_list = end_node(root)
-
-    # Source Node and position df:
-    source_df = pd.DataFrame(source_list, columns=['Source ID'])
-    source_df['Source ID'] = source_df[ 'Source ID' ].astype(int)
+    source_df = pd.DataFrame()
+    source_df['Source ID'] = source_list
+    source_df['Source ID'] = source_df['Source ID'].astype(int)
     source_position_df = pd.merge(source_df, node_pos_df(root), how='left', left_on='Source ID', right_on='Node ID')
-    # Target Node and position df:
-    target_df = pd.DataFrame(target_list, columns=[ 'Target ID' ])
-    target_df['Target ID'] = target_df[ 'Target ID' ].astype(int)
+    target_df = pd.DataFrame()
+    target_df['Target ID'] = target_list
+    target_df['Target ID'] = target_df['Target ID'].astype(int)
     target_position_df = pd.merge(target_df, node_pos_df(root), how='left', left_on='Target ID', right_on='Node ID')
-    # Source and Target final df:
+    skeleton_df = pd.DataFrame()
+    skeleton_ids = skeleton_id(root)
+    skeleton_comments = skeleton_comment(root)
+    skeleton_df['Skeleton ID'] = skeleton_ids
+    skeleton_df['Skeleton Comment'] = skeleton_comments
+
     source_target_df_tmp = pd.merge(source_position_df, target_position_df, left_index=True, right_index=True)
     source_target_df = source_target_df_tmp.drop(['Node ID_x', 'Node ID_y'], axis=1)
+
+    # Combining the information into one final dataframe:
+    source_target_df = pd.concat([skeleton_df, source_target_df], axis=1)
+
+
+    # Source Node and position df:
+    #source_df = pd.DataFrame(source_list, columns=['Source ID'])
+    #source_df['Source ID'] = source_df[ 'Source ID' ].astype(int)
+    #source_position_df = pd.merge(source_df, node_pos_df(root), how='left', left_on='Source ID', right_on='Node ID')
+    # Target Node and position df:
+    #target_df = pd.DataFrame(target_list, columns=[ 'Target ID' ])
+    #target_df['Target ID'] = target_df[ 'Target ID' ].astype(int)
+    #target_position_df = pd.merge(target_df, node_pos_df(root), how='left', left_on='Target ID', right_on='Node ID')
+
+    # Source and Target final df:
+    #source_target_df_tmp = pd.merge(source_position_df, target_position_df, left_index=True, right_index=True)
+    #source_target_df = source_target_df_tmp.drop(['Node ID_x', 'Node ID_y'], axis=1)
 
     return source_target_df
 

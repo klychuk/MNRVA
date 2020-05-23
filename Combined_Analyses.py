@@ -19,14 +19,27 @@ root = parse.root
 # Dataframe with the end points and their positions:
 endpoints_position_df = AB.end_pt_df(root)
 
+# Make dataframe with source target information:
+source_target_df = pd.DataFrame()
+
+for thing in parse.root.iter("thing"):
+    source_target_df = source_target_df.append(parse.source_target_pos_df(thing), ignore_index=True)
+
+# Rename columns to have no spaces in names:
+source_target_df.rename(columns = {"Skeleton ID": "Skeleton_ID", "Skeleton Comment":"Skeleton_Comment"}, inplace = True)
+
+# Fill empty cells in Skeleton ID column to have last filled value:
+source_target_df.fillna(method = "ffill")
+source_target_df.Skeleton_ID = source_target_df.Skeleton_ID.ffill()
+
+#source_target_df.to_csv('Source_Target.csv', index = False)
+
 #######################################################################################################################
 
 ## Creating New Node ID to contain Skeleton ID:
 
 # Make data frame with skeleton information:
 XML_final_df = pd.DataFrame()
-#prints empty dataframe
-#print(XML_final_df)
 
 for thing in parse.root.iter("thing"):
     XML_final_df = XML_final_df.append(parse.skeleton_information(thing), ignore_index=True)
@@ -43,10 +56,6 @@ XML_final_df["New_Node_ID"] = XML_final_df["Skeleton_ID"] + "_" + XML_final_df["
 
 # Create soma data frame:
 soma_df = XML_final_df[XML_final_df["Node_Comment"].str.contains("soma|First Node")]
-
-
-#print(XML_final_df)
-#print(soma_df)
 
 # Save to csv:
 #XML_final_df.to_csv("Skeleton information-updated.csv", index = False)
@@ -79,51 +88,6 @@ for Skeleton_ID, merged_endpoints_soma_df in merged_endpoints_soma_df.groupby("S
 
 # Create list of each skeleton data frame:
 skeleton_list_df = [skeletons[x] for x in skeletons]
-
-#print(XML_final_df)
-#print(soma_df)
-#######################################################################################################################
-#creation of classes from the DFs
-
-#Add (self, soma_ID)
-class Neuron:
-    def __init__(self):
-        self.SK_ID = 0
-        self.radius = 0
-        self.euc_dist = 0
-        self.classif = ""
-
-    def get_N_euc(self, inp):
-        #return self.euc_dist
-        pass
-
-    def set_classif(self,inp):
-        self.classif = inp
-
-class Node(Neuron):
-    def __init__(self, SK_ID):
-        self.soma_ID = SK_ID
-        self.node_ID = 0
-        self.parent_ID = 0
-        self.children = []
-        self.end = False
-        self.branch = False
-        self.from_soma = False
-        self.radius = 0
-
-    #this will tell if its an end node or a branching point
-    def classify_node(self):
-        if len(self.children) == 0:
-            self.end = True
-        if len(self.children) < 1:
-            self.branch = True
-
-    #This is a direct branching from the soma can use to name branches?
-    def set_direct(self):
-        if self.parent_ID == self.soma_ID:
-            self.from_soma = True
-
-#Then create loops to set each variable with calculation like the one below :) 
 
 #######################################################################################################################
 
@@ -174,23 +138,95 @@ final_classification_df['Euclidean_Distance_From_Soma'] = final_ed_list
 final_classification_df['Classification'] = final_class_list
 
 # Save to csv:
-final_classification_df.to_csv('Apical Basal Reclassification.csv', index = False)
+#final_classification_df.to_csv('Apical Basal Reclassification.csv', index = False)
 
 # Print time it took for above analysis:
 analysis_time = datetime.now() - starttime_bc
 #print("Analysis Completion Time: ", analysis_time)
 
+#######################################################################################################################
 
-objects = final_classification_df['Node_ID']
+## Data Management and Organization for Tree Structure Creation:
 
-plt.bar(objects, final_ed_list, align='center')
-plt.ylabel('ED')
-plt.title('Distribution of ED')
+#Make list of soma node IDs:
+soma_list = list(soma_df["Node_ID"])
 
+#Make list of node IDs and skeleton IDs:
+node_list = list(XML_final_df["Node_ID"])
+skeleton_list = list(XML_final_df["Skeleton_ID"])
 
-#displays the plot upon running
-#commented for testing
-plt.show()
+#Make lists of sources and targets:
+source_list = list(source_target_df["Source ID"])
+target_list = list(source_target_df["Target ID"])
+skeleton_source_target_list = list(source_target_df["Skeleton_ID"])
+
+#Make all nodes integers:
+for i in range(len(soma_list)):
+    soma_list[i] = int(soma_list[i])
+
+for i in range(len(node_list)):
+    node_list[i] = int(node_list[i])
+
+for i in range(len(skeleton_list)):
+    skeleton_list[i] = int(skeleton_list[i])
+
+for i in range(len(source_list)):
+    source_list[i] = int(source_list[i])
+
+for i in range(len(target_list)):
+    target_list[i] = int(target_list[i])
+
+#Make dictionary from nodes and associated skeletons:
+skeleton_dict = {node_list[i]: skeleton_list[i] for i in range(len(node_list))}
+
+#Make dictionary from source nodes and associated skeletons:
+source_skeleton_dict = {source_list[i]: skeleton_source_target_list[i] for i in range(len(source_list))}
+
+#Subset data frame to find instances where Source ID is greater than Target ID (tracing error #1):
+errors = source_target_df[source_target_df["Source ID"] > source_target_df["Target ID"]]
+
+#Make list of skeletons with errors and remove duplicates:
+skeleton_errors_list = errors["Skeleton_ID"]
+skeleton_errors_list = list(dict.fromkeys(skeleton_errors_list))
+
+#Split full data frame into list of data frames for each skeleton:
+skeleton_info_list = []
+for skeleton, source_target_df in source_target_df.groupby("Skeleton_ID"):
+    skeleton_info_list.append(source_target_df)
+
+#Find source nodes that are never target nodes (tracing error #2):
+missing_nodes = []
+for node in source_list:
+    if node not in target_list:
+        missing = node
+        missing_nodes.append(missing)
+
+#Remove missing nodes if they are the soma:
+final_missing_nodes = []
+for node in missing_nodes:
+    if node not in soma_list:
+        final_missing = node
+        final_missing_nodes.append(final_missing)
+
+#Remove duplicated nodes in list:
+final_missing_nodes = list(dict.fromkeys(final_missing_nodes))
+
+#Find skeleton ID asssocialted with missing nodes:
+for key, value in source_skeleton_dict.items():
+    if key in final_missing_nodes:
+        error = value
+        skeleton_errors_list.append(error)
+
+#Remove duplicate nodes in list:
+skeleton_errors_list = list(dict.fromkeys(skeleton_errors_list))
+
+#Provide user with number of errors:
+if len(skeleton_errors_list) > 0:
+    print("There were " + str(len(skeleton_errors_list)) + " skeletons that could not be processed." )
+    print("Errors arise from missing or incomplete tracing information.")
+    print("The program will proceed with processing the remaining " +  str(len(soma_list)-len(skeleton_errors_list)) + " skeletons.")
+else:
+    print("The program will proceed with processing " + str(len(soma_list)) + " skeletons.")
 
 
 
