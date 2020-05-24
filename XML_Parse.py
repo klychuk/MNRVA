@@ -14,26 +14,26 @@ import plotly.graph_objs as go
 #######################################################################################################################
 #Chunk 1
 # Creating argparse requirements for running script through the python terminal:
-
 parser = argparse.ArgumentParser(description='XML Parsing Script for Knossos Annotations')
+parser.add_argument('-input', type = str , required = True , help='Path to desired Knossos XML file for analysis')
+parser.add_argument('-out_dir', default= '.', help='Directory where you would like analyses saved')
+parser.add_argument('-classify', type = bool, default = False, help='True/False if you want the dendrites to be classified as apical or basal')
+parser.add_argument('-visual', type = bool, default = False, help='True/False If you want graphical representaions of your neurons')
 
-parser.add_argument('in_file', help='Path to desired Knossos XML file for analysis')
-parser.add_argument('out_dir', help='Directory path to where you would like analyses saved')
 
 args = parser.parse_args()
 
-# Changing the directory to save analysis scripts:
 output_file = args.out_dir
 os.chdir(output_file)
-
 # Printing given input file path for user confirmation:
-print('\nInput file: ', args.in_file, '\n')
+print('\nInput file: ', args.input, '\n')
+
 
 #######################################################################################################################
 #Chunk2
 # Using Element tree to parse through the give input XML file:
 
-tree = ET.parse(args.in_file)
+tree = ET.parse(args.input)
 root = tree.getroot()
 
 #######################################################################################################################
