@@ -179,8 +179,6 @@ def overlaid_histogram(root):
 
 # Determining data set orientation:
 
-data_ori = input("What coordinate plane is the upward direction in the original data set? (X, Y, or Z coordinate plane): ")
-data_ori.islower()
 
 # Creating a fail safe that checks the correct data orientation:
 
@@ -235,8 +233,6 @@ def check_orientation(root):
 
 # Should user not specify the correct orientation the following will be run:
 
-if data_ori == '':
-    data_ori = check_orientation(parse.root)
-    print("Predicted orientation: ", data_ori)
+
 
 #######################################################################################################################
