@@ -32,7 +32,7 @@ def average_list(list):
 #######################################################################################################################
 
 # Data Analysis:
-
+#This should be removed bc we no longer use the axis to classify
 def apical_basal_classifier(root):
     """Function to classify skeleton branches as either apical or basal based on the position of the branches end node in comparison to the soma"""
 
@@ -231,7 +231,6 @@ def check_orientation(root):
 
     return max(avg_dict, key=avg_dict.get)
 
-# Should user not specify the correct orientation the following will be run:
 
 
 
