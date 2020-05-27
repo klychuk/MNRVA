@@ -23,8 +23,7 @@ parser.add_argument('-visual', type = bool, default = False, help='True/False If
 
 args = parser.parse_args()
 
-output_file = args.out_dir
-os.chdir(output_file)
+
 # Printing given input file path for user confirmation:
 print('\nInput file: ', args.input, '\n')
 
@@ -413,3 +412,6 @@ def save_node_csv_df(dataframe, filename):
         dataframe.to_csv(filename, index=None, header=True)
 
 #######################################################################################################################
+#changes the outdir after the input file is parsed 
+output = args.out_dir
+os.chdir(output)

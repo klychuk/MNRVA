@@ -271,7 +271,7 @@ for i in range(len(somas_dict_list)):
     all_parents_dict_list[i].update(somas_dict_list[i])
 
 # Make tree structures:
-from treelib import Node, Tree
+#from treelib import Node, Tree
 
 tree_list = []
 for node in all_parents_dict_list:
