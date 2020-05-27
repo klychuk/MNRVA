@@ -1838,7 +1838,7 @@
             <node id="2269" radius="7.86432" x="3973" y="7889" z="134" inVp="0" inMag="1" time="217601442"/>
             <node id="2296" radius="33.2792" x="8424" y="4999" z="337" inVp="0" inMag="1" time="244551121"/>
             <node id="2300" radius="21.5" x="9142" y="5145" z="120" inVp="0" inMag="1" time="337119738"/>
-            <node id="2323" radius="880" x="8788" y="5151" z="225" inVp="0" inMag="2" time="443013075"/>
+            <node id="2323" radius="880" x="8788" y="5151" z="225" inVp="0" inMag="2" time="443013075" comment="soma"/>
         </nodes>
         <edges>
             <edge source="19" target="20"/>
@@ -3657,7 +3657,7 @@
     </thing>
     <thing id="9" visible="1" color.r="1" color.g="0.501961" color.b="0.509804" color.a="1" comment="SOMA E_fin no soma synapse_soma_IN_SOMASHAFT_BK__checked">
         <nodes>
-            <node id="2767" radius="890" x="7068" y="7763" z="381" inVp="0" inMag="8" time="24361717"/>
+            <node id="2767" radius="890" x="7068" y="7763" z="381" inVp="0" inMag="8" time="24361717" comment="soma"/>
             <node id="2768" radius="92.8226" x="6621" y="6743" z="270" inVp="0" inMag="2" time="24482930" comment="basal"/>
             <node id="2769" radius="69.9437" x="6445" y="6442" z="230" inVp="0" inMag="2" time="24522880"/>
             <node id="2770" radius="91.0726" x="6311" y="6205" z="198" inVp="0" inMag="1" time="24534039"/>
