@@ -197,14 +197,25 @@ for tree in tree_list:
 
 ## Node classification processing:
 
-# Identify end nodes (leaves):
-leaf_list = []
-for i in range(len(tree_list)):
-    tree = tree_list[i]
-    leaves = tree.leaves(nid=None)
-    for leaf in leaves:
-        leaf = leaf.identifier
-        leaf_list.append(leaf)
+# Find nodes that branch directly from soma:
+from_soma_list = []
+for index, row in source_target_df.iterrows():
+    if row["Source_ID"] in soma_list_new:
+        target = row["Target_ID"]
+        from_soma_list.append(target)
+
+# Classify nodes directly branching from soma:
+from_soma_class_list = []
+for index, row in XML_final_df.iterrows():
+    if row["Node_ID"] in from_soma_list:
+        classification = "yes"
+        from_soma_class_list.append(classification)
+    else:
+        classification = "."
+        from_soma_class_list.append(classification)
+
+# Add from soma classification column to data frame:
+XML_final_df["From_Soma?"] = from_soma_class_list
 
 # Identify paths to leaves:
 paths_list = []
@@ -230,11 +241,33 @@ for node in node_list:
         classification = "yes"
         branch_node_classifications.append(classification)
     else:
-        classification = "no"
+        classification = "."
         branch_node_classifications.append(classification)
 
 # Add branch node classification column to data frame:
 XML_final_df["Branch_node?"] = branch_node_classifications
+
+# Identify end nodes (leaves):
+leaf_list = []
+for i in range(len(tree_list)):
+    tree = tree_list[i]
+    leaves = tree.leaves(nid=None)
+    for leaf in leaves:
+        leaf = leaf.identifier
+        leaf_list.append(leaf)
+
+# Create classification variable for end nodes:
+end_node_classifications = []
+for node in node_list:
+    if node in leaf_list:
+        classification = "yes"
+        end_node_classifications.append(classification)
+    else:
+        classification = "."
+        end_node_classifications.append(classification)
+
+# Add end node classification column to data frame:
+XML_final_df["End_node?"] = end_node_classifications
 
 
 ### Make into flag option
@@ -351,7 +384,6 @@ for path in paths_list:
             elif tier >= 10:
                 dendrite_level = "higher level"
                 dendrite_level_list.append(dendrite_level)
-
         all_dendrite_level_list.append(dendrite_level_list)
 
 # Flatten lists:
@@ -365,17 +397,135 @@ level_dict = {flat_final_path_list[i]: flat_all_dendrite_level_list[i] for i in 
 dendrite_levels_df = pd.DataFrame(level_dict.items(), columns=["Node_ID", "Dendrite_Level"])
 
 # Make new data frame without skeletons with errors:
-XML_new = XML_final_df[~XML_final_df["Skeleton_ID"].isin(skeleton_errors_list)]
+XML_processed = XML_final_df[~XML_final_df["Skeleton_ID"].isin(skeleton_errors_list)]
 
 # Make Node_ID column numeric:
-XML_new["Node_ID"] = pd.to_numeric(XML_new["Node_ID"])
+XML_processed["Node_ID"] = pd.to_numeric(XML_processed["Node_ID"])
 
-# Merge data frames (NOTE: XML_final_df has 9675 lines, while dendrite_levels_df has 7814:
-merged_final_df = pd.merge(XML_new, dendrite_levels_df, on=["Node_ID"], how="inner")
-
-# Save processed skeletons to CSV file:
-merged_final_df.to_csv("Processed_Skeleton_Information.csv", index = False)
+# Merge data frames:
+processed_df = pd.merge(XML_processed, dendrite_levels_df, on=["Node_ID"], how="inner")
 
 analysis_time = datetime.now() - starttime_bc
 print("\nAnalysis Completion Time: ", analysis_time)
+
+#######################################################################################################################
+
+## Sholl Analysis Apical/Basal Re-classifications:
+
+# Make sure coordinates are numerical values:
+processed_df["X"] = processed_df["X"].astype(int)
+processed_df["Y"] = processed_df["Y"].astype(int)
+processed_df["Z"] = processed_df["Z"].astype(int)
+
+# Create new data frames grouped by skeleton ID and store in dictionary:
+skeletons = {}
+for Skeleton_ID, processed_df in processed_df.groupby("Skeleton_ID"):
+    skeletons.update({'skeleton_' + str(Skeleton_ID) : processed_df.reset_index(drop=True)})
+
+# Create list of each skeleton data frame:
+skeleton_df_list = [skeletons[x] for x in skeletons]
+
+## Calculate ED from soma for nodes in each skeleton:
+final_ed_list = []
+# Iterate through end points to assign variables:
+for skeleton in skeleton_df_list:
+    ed_lists = []
+    class_lists = []
+    for i in range(len(skeleton)):
+        x1 = skeleton.iloc[0,3]
+        y1 = skeleton.iloc[0,4]
+        z1 = skeleton.iloc[0,5]
+        x2 = skeleton.iloc[i]['X']
+        y2 = skeleton.iloc[i]['Y']
+        z2 = skeleton.iloc[i]['Z']
+        # Run Euclidean Distance formula:
+        ed1 = (x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2
+        ed2 = np.sqrt(ed1)
+        ed_lists.append(ed2)
+    for ed in ed_lists:
+        final_ed_list.append(ed)
+
+# Re-combine skeleton data frames into on data frame:
+processed_df = pd.concat(skeletons.values(), ignore_index=True)
+
+# Append Euclidean Distance and Classification values to columns in data frame:
+processed_df['Euclidean_Distance_From_Soma'] = final_ed_list
+
+# Create new data frames grouped by skeleton ID and store in dictionary:
+skeletons = {}
+for Skeleton_ID, processed_df in processed_df.groupby("Skeleton_ID"):
+    skeletons.update({'skeleton_' + str(Skeleton_ID) : processed_df.reset_index(drop=True)})
+
+# Create list of each skeleton data frame:
+skeleton_df_list = [skeletons[x] for x in skeletons]
+primary_sholl_list = []
+
+for skeleton in skeleton_df_list:
+    ED_to_calculate = []
+    for i in range(len(skeleton)):
+        if skeleton.iloc[i]["From_Soma?"] == "yes":
+            ED = skeleton.iloc[i]["Euclidean_Distance_From_Soma"]
+            ED_to_calculate.append(ED)
+        else:
+            pass
+    # Calculate mean and standard deviation:
+    mean = np.mean(ED_to_calculate)
+    std = np.std(ED_to_calculate)
+    mstd = mean + std
+    # Perform Sholl Analysis:
+    sholl_list = []
+    for ED in ED_to_calculate:
+        if ED > mstd:
+            sholl = "Apical"
+            sholl_list.append(sholl)
+        else:
+            sholl = "Basal"
+            sholl_list.append(sholl)
+    for classification in sholl_list:
+        primary_sholl_list.append(classification)
+
+# Make dataframe with Sholl classifications:
+sholl_df = pd.DataFrame()
+sholl_df["Node_ID"] = from_soma_list
+sholl_df["Sholl_Classification"] = primary_sholl_list
+
+# Re-combine skeleton data frames into on data frame:
+processed_df = pd.concat(skeletons.values(), ignore_index=True)
+
+# Merge data frames:
+new_processed_df = pd.merge(processed_df, sholl_df, on=["Node_ID"], how="outer")
+
+# Make dictionary from nodes and associated dendrite levels:
+sholl_dict = {from_soma_list[i]: primary_sholl_list[i] for i in range(len(from_soma_list))}
+
+# Use Sholl classificaitons for all nodes within each path:
+all_sholl_list = []
+for key,value in sholl_dict.items():
+    for path in final_path_list:
+        if key in path:
+            sholl = [value] * len(path)
+            all_sholl_list.append(sholl)
+
+# Flatten sholl list:
+flat_sholl_list = [val for sublist in all_sholl_list for val in sublist]
+
+flat_final_path_list = [int(i) for i in flat_final_path_list]
+soma_list_new = [int(i) for i in soma_list_new]
+
+# Make dataframe with Sholl classifications:
+final_sholl_df = pd.DataFrame()
+final_sholl_df["Node_ID"] = flat_final_path_list
+final_sholl_df["Sholl_Classification"] = flat_sholl_list
+
+# Label somas:
+final_sholl_df.loc[final_sholl_df.Node_ID.isin(soma_list_new), "Sholl_Classification"] = "Soma"
+
+# Merge data frames:
+processed_df = pd.merge(processed_df, final_sholl_df, on=["Node_ID"], how="inner")
+
+# Remove duplicate rows:
+processed_df = processed_df.drop_duplicates(subset = "Node_ID")
+
+# Save to csv:
+processed_df.to_csv("Processed_Skeleton_Information.csv", index = False)
 
