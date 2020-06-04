@@ -17,9 +17,10 @@ import plotly.graph_objs as go
 parser = argparse.ArgumentParser(description='XML Parsing Script for Knossos Annotations')
 parser.add_argument('-input', type = str , required = True , help='Path to desired Knossos XML file for analysis')
 parser.add_argument('-out_dir', default= '.', help='Directory where you would like analyses saved')
+parser.add_argument('-run_name', type = str, required= True, help= 'Name of folder you want analysis saved in')
 parser.add_argument('-classify', type = bool, default = False, help='True/False if you want the dendrites to be classified as apical or basal')
-parser.add_argument('-visual', type = bool, default = False, help='True/False If you want graphical representaions of your neurons')
-
+parser.add_argument('-plot', type = bool, default = False, help='True/False If you want graphical representaions of your neurons')
+parser.add_argument('-tree', type = bool, default = False, help='True/False If you want tree organiztion text file of your neurons')
 
 args = parser.parse_args()
 
@@ -412,6 +413,9 @@ def save_node_csv_df(dataframe, filename):
         dataframe.to_csv(filename, index=None, header=True)
 
 #######################################################################################################################
-#changes the outdir after the input file is parsed 
+#changes the outdir after the input file is parsed
+folder = args.run_name
 output = args.out_dir
 os.chdir(output)
+os.mkdir(folder)
+os.chdir(folder)
