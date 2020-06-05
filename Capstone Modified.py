@@ -415,11 +415,11 @@ for Skeleton_ID, processed_df in processed_df.groupby("Skeleton_ID"):
 # Create list of each skeleton data frame:
 skeleton_df_list = [skeletons[x] for x in skeletons]
 
-primary_sholl_list = []
+end_node_sholl_list = []
 for skeleton in skeleton_df_list:
     ED_to_calculate = []
     for i in range(len(skeleton)):
-        if skeleton.iloc[i]["From_Soma?"] == "yes":
+        if skeleton.iloc[i]["End_node?"] == "yes":
             ED = skeleton.iloc[i]["Euclidean_Distance_From_Soma"]
             ED_to_calculate.append(ED)
         else:
@@ -438,12 +438,15 @@ for skeleton in skeleton_df_list:
             sholl = "Basal"
             sholl_list.append(sholl)
     for classification in sholl_list:
-        primary_sholl_list.append(classification)
+        end_node_sholl_list.append(classification)
 
 # Make dataframe with Sholl classifications:
+
+print(len(leaf_list))
+print(len(end_node_sholl_list))
 sholl_df = pd.DataFrame()
-sholl_df["Node_ID"] = from_soma_list
-sholl_df["Sholl_Classification"] = primary_sholl_list
+sholl_df["Node_ID"] = leaf_list
+sholl_df["Sholl_Classification"] = end_node_sholl_list
 
 # Re-combine skeleton data frames into on data frame:
 processed_df = pd.concat(skeletons.values(), ignore_index=True)
@@ -452,7 +455,7 @@ processed_df = pd.concat(skeletons.values(), ignore_index=True)
 new_processed_df = pd.merge(processed_df, sholl_df, on=["Node_ID"], how="outer")
 
 # Make dictionary from nodes and associated dendrite levels:
-sholl_dict = {from_soma_list[i]: primary_sholl_list[i] for i in range(len(from_soma_list))}
+sholl_dict = {leaf_list[i]: end_node_sholl_list[i] for i in range(len(leaf_list))}
 
 # Use Sholl classificaitons for all nodes within each path:
 all_sholl_list = []

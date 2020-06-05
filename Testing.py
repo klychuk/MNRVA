@@ -461,11 +461,11 @@ for skeleton in skeleton_list_df:
         final_class_list.append(lists)
 
 # Re-combine skeleton data frames into on data frame:
-processed_df = pd.concat(skeletons.values(), ignore_index=True)
+end_nodes_df = pd.concat(skeletons.values(), ignore_index=True)
 
 # Append Euclidean Distance and Classification values to columns in data frame:
-processed_df['Euclidean_Distance_From_Soma'] = final_ed_list
-processed_df['Classification'] = final_class_list
+end_nodes_df['Euclidean_Distance_From_Soma'] = final_ed_list
+end_nodes_df['Classification'] = final_class_list
 
 # Make dictionary from nodes and associated dendrite levels:
 sholl_dict = {end_nodes[i]: final_class_list[i] for i in range(len(end_nodes))}
@@ -493,7 +493,7 @@ final_sholl_df["Sholl_Classification"] = flat_sholl_list
 final_sholl_df.loc[final_sholl_df.Node_ID.isin(soma_list_new), "Sholl_Classification"] = "Soma"
 
 # Merge data frames:
-processed_df = pd.merge(processed_df, final_sholl_df, on=["Node_ID"], how="inner")
+processed_df = pd.merge(end_nodes_df , final_sholl_df, on=["Node_ID"], how="inner")
 
 # Remove duplicate rows:
 processed_df = processed_df.drop_duplicates(subset = "Node_ID")
