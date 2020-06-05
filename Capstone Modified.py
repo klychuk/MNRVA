@@ -427,14 +427,18 @@ for skeleton in skeleton_df_list:
     # Calculate mean and standard deviation:
     mean = np.mean(ED_to_calculate)
     std = np.std(ED_to_calculate)
-    mstd = mean + std
+    m = mean + std
+    maxx = np.max(ED_to_calculate)
+    minn = np.min(ED_to_calculate)
+
     # Perform Sholl Analysis:
     sholl_list = []
     for ED in ED_to_calculate:
-        if ED > mstd:
+        mstd = ED - m
+        if mstd > 0 or ED == maxx:
             sholl = "Apical"
             sholl_list.append(sholl)
-        else:
+        elif mstd <= 0 or ED == minn:
             sholl = "Basal"
             sholl_list.append(sholl)
     for classification in sholl_list:
@@ -442,8 +446,7 @@ for skeleton in skeleton_df_list:
 
 # Make dataframe with Sholl classifications:
 
-print(len(leaf_list))
-print(len(end_node_sholl_list))
+
 sholl_df = pd.DataFrame()
 sholl_df["Node_ID"] = leaf_list
 sholl_df["Sholl_Classification"] = end_node_sholl_list
@@ -459,8 +462,8 @@ sholl_dict = {leaf_list[i]: end_node_sholl_list[i] for i in range(len(leaf_list)
 
 # Use Sholl classificaitons for all nodes within each path:
 all_sholl_list = []
-for key,value in sholl_dict.items():
-    for path in final_path_list:
+for path in final_path_list:
+    for key,value in sholl_dict.items():
         if key in path:
             sholl = [value] * len(path)
             all_sholl_list.append(sholl)

@@ -417,5 +417,7 @@ def save_node_csv_df(dataframe, filename):
 folder = args.run_name
 output = args.out_dir
 os.chdir(output)
-os.mkdir(folder)
-os.chdir(folder)
+try:
+    os.mkdir(folder)
+except FileExistsError:
+    os.chdir(folder)
