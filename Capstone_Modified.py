@@ -19,7 +19,7 @@ root = parse.root
 ## Create source target dataframe:
 source_target_df = pd.DataFrame()
 for thing in parse.root.iter("thing"):
-    source_target_df = source_target_df.append(parse.source_target_pos_df(thing), ignore_index=True)
+    source_target_df = source_target_df.append(parse.source_target_pos_df(thing))
 
 # Rename columns to have no spaces in names:
 source_target_df.rename(columns = {"Skeleton ID": "Skeleton_ID", "Skeleton Comment": "Skeleton_Comment",
@@ -34,7 +34,6 @@ source_target_df["Skeleton_ID"] = source_target_df["Skeleton_ID"].astype(str).as
 source_target_df["Source_ID"] = source_target_df["Source_ID"].astype(str).astype(int)
 source_target_df["Target_ID"] = source_target_df["Target_ID"].astype(str).astype(int)
 
-
 ## Create skeleton dataframe:
 XML_final_df = pd.DataFrame()
 for thing in parse.root.iter("thing"):
@@ -43,6 +42,9 @@ for thing in parse.root.iter("thing"):
 # Rename columns to have no spaces in names:
 XML_final_df.rename(columns = {"Skeleton ID": "Skeleton_ID", "Skeleton Comment":"Skeleton_Comment",
                                "Node ID":"Node_ID", "Node Comment":"Node_Comment"}, inplace = True)
+
+# Create index column in data frame:
+XML_final_df['index'] = XML_final_df.index
 
 # Fill empty cells in Skeleton ID column to have last filled value:
 XML_final_df.fillna(method = "ffill")
@@ -63,6 +65,13 @@ soma_df = XML_final_df[XML_final_df["Node_Comment"].str.contains("soma|first nod
 soma_df["Skeleton_ID"] = soma_df["Skeleton_ID"].astype(str).astype(int)
 soma_df["Node_ID"] = soma_df["Node_ID"].astype(str).astype(int)
 
+# Make skeleton lists and remove duplicates:
+all_skeleton_list = XML_final_df["Skeleton_ID"]
+all_skeleton_list= list(dict.fromkeys(all_skeleton_list))
+soma_skeleton_list = soma_df["Skeleton_ID"]
+
+# Identify skeletons without marked somas:
+missing_soma_list = np.setdiff1d(all_skeleton_list, soma_skeleton_list)
 
 ## Make lists from dataframes:
 soma_list = list(soma_df["Node_ID"])
@@ -111,23 +120,26 @@ for key, value in source_skeleton_dict.items():
         error = value
         skeleton_errors_list.append(error)
 
-# Remove duplicate nodes in list:
+# Remove duplicate nodes in list and add in any skeletons that are missing a soma label:
 skeleton_errors_list = list(dict.fromkeys(skeleton_errors_list))
+skeleton_errors_list = *skeleton_errors_list, *missing_soma_list
 
 # Provide user with number of errors:
 if len(skeleton_errors_list) > 0:
     print("There were " + str(len(skeleton_errors_list)) + " skeletons that could not be processed." )
     print("Skeleton information for these " + str(len(skeleton_errors_list)) + " skeletons will be output to a file named 'Unprocessed_Skeleton_Information.csv'.")
-    print("\nThe program will proceed with processing the remaining " +  str(len(soma_list)-len(skeleton_errors_list)) + " skeletons.")
+    print("\nThe program will proceed with processing the remaining " + str(len(all_skeleton_list)-len(skeleton_errors_list)) + " skeletons.")
 else:
-    print("The program will proceed with processing " + str(len(soma_list)) + " skeletons.")
-
+    print("The program will proceed with processing " + str(len(all_skeleton_list)) + " skeletons.")
 
 ## Make new dataframes without problematic skeltons:
 soma_df_new = soma_df[~soma_df['Skeleton_ID'].isin(skeleton_errors_list)]
 soma_list_new = list(soma_df_new["Node_ID"])
 source_target_df_new = source_target_df[~source_target_df['Skeleton_ID'].isin(skeleton_errors_list)]
 source_target_df_errors = source_target_df[source_target_df['Skeleton_ID'].isin(skeleton_errors_list)]
+
+# Remove duplicate nodes in list:
+skeleton_new_list = list(dict.fromkeys(skeleton_list))
 
 # Save problematic skeletons to CSV file:
 source_target_df_errors.to_csv('Unprocessed_Skeleton_Information.csv', index=False)
@@ -136,7 +148,7 @@ source_target_df_errors.to_csv('Unprocessed_Skeleton_Information.csv', index=Fal
 ## Format data for tree structure:
 # Split full data frame into list of data frames for each skeleton:
 skeleton_info_list = []
-for skeleton, source_target_df_new in source_target_df_new.groupby("Skeleton_ID"):
+for skeleton, source_target_df_new in source_target_df_new.groupby("Skeleton_ID", sort=False):
     skeleton_info_list.append(source_target_df_new)
 
 # Create dictionary for somas within skeleton:
@@ -415,11 +427,16 @@ for Skeleton_ID, processed_df in processed_df.groupby("Skeleton_ID"):
 # Create list of each skeleton data frame:
 skeleton_df_list = [skeletons[x] for x in skeletons]
 
-end_node_sholl_list = []
+sholl_list = []
+end_node_list = []
+mstd_list = []
+ed_list = []
 for skeleton in skeleton_df_list:
     ED_to_calculate = []
     for i in range(len(skeleton)):
         if skeleton.iloc[i]["End_node?"] == "yes":
+            node = skeleton.iloc[i]["Node_ID"]
+            end_node_list.append(node)
             ED = skeleton.iloc[i]["Euclidean_Distance_From_Soma"]
             ED_to_calculate.append(ED)
         else:
@@ -427,38 +444,42 @@ for skeleton in skeleton_df_list:
     # Calculate mean and standard deviation:
     mean = np.mean(ED_to_calculate)
     std = np.std(ED_to_calculate)
-    m = mean + std
-    maxx = np.max(ED_to_calculate)
-    minn = np.min(ED_to_calculate)
-
+    mstd = mean + std
+    mstd_list.append([mstd] * (len(ED_to_calculate)))
     # Perform Sholl Analysis:
-    sholl_list = []
     for ED in ED_to_calculate:
-        mstd = ED - m
-        if mstd > 0 or ED == maxx:
-            sholl = "Apical"
-            sholl_list.append(sholl)
-        elif mstd <= 0 or ED == minn:
-            sholl = "Basal"
-            sholl_list.append(sholl)
-    for classification in sholl_list:
-        end_node_sholl_list.append(classification)
+        ed_list.append(ED)
 
-# Make dataframe with Sholl classifications:
+# Flatten sholl list:
+flat_mstd_list = [val for sublist in mstd_list for val in sublist]
 
+# Make data frame with mean + standard deviation values and Euclidean Distances:
+mstd_ED_df = pd.DataFrame()
+mstd_ED_df["Node_ID"] = end_node_list
+mstd_ED_df["Mean+STD"] = flat_mstd_list
+mstd_ED_df["ED"] = ed_list
 
-sholl_df = pd.DataFrame()
-sholl_df["Node_ID"] = leaf_list
-sholl_df["Sholl_Classification"] = end_node_sholl_list
+# Perform Sholl Analysis:
+sholl_list = []
+for index, row in mstd_ED_df.iterrows():
+    if row["Mean+STD"] >= row["ED"]:
+        classification = "Basal"
+        sholl_list.append(classification)
+    elif row["Mean+STD"] < row["ED"]:
+        classification = "Apical"
+        sholl_list.append(classification)
+
+# Add Sholl analysis to column in data frame:
+mstd_ED_df["Sholl"] = sholl_list
 
 # Re-combine skeleton data frames into on data frame:
 processed_df = pd.concat(skeletons.values(), ignore_index=True)
 
 # Merge data frames:
-new_processed_df = pd.merge(processed_df, sholl_df, on=["Node_ID"], how="outer")
+new_processed_df = pd.merge(processed_df, mstd_ED_df, on=["Node_ID"], how="outer")
 
 # Make dictionary from nodes and associated dendrite levels:
-sholl_dict = {leaf_list[i]: end_node_sholl_list[i] for i in range(len(leaf_list))}
+sholl_dict = {end_node_list[i]: sholl_list[i] for i in range(len(end_node_list))}
 
 # Use Sholl classificaitons for all nodes within each path:
 all_sholl_list = []
@@ -560,9 +581,9 @@ s.unstack().plot.bar(stacked=True)
 plt.xticks(fontsize=10, rotation=90)
 plt.xlabel("Skeleton ID", fontsize=15)
 plt.ylabel("Number of nodes", fontsize=15)
-handles, labels = plt.gca().get_legend_handles_labels()
-order = [2,5,8,3,4,6,7,1,0]
-plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
+#handles, labels = plt.gca().get_legend_handles_labels()
+#order = [2,5,8,3,4,6,7,1,0]
+#plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
 plt.savefig("Dendrite Levels.pdf")
 plt.clf()
 
@@ -580,7 +601,7 @@ plt.ylabel("Number of nodes", fontsize=15)
 plt.savefig("Sholl Classifications.pdf")
 plt.clf()
 
-#ggplot??
+
 
 analysis_time = datetime.now() - starttime_bc
 print("\nAnalysis Completion Time: ", analysis_time)
