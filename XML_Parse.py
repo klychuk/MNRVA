@@ -420,4 +420,8 @@ os.chdir(output)
 try:
     os.mkdir(folder)
 except FileExistsError:
-    os.chdir(folder)
+    save_over = input(f"The folder \'{folder}\'already exists. Would you like to continue and overwrite existing files? Y/N otherwise files will be stored in the working directory \n")
+    if save_over.lower() == "y":
+        os.chdir(folder)
+    else:
+        pass
