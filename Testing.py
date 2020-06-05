@@ -390,10 +390,10 @@ processed_df = pd.merge(processed_df, parent_df, on=["Node_ID"], how="inner")
 
 # Merge endpoints and XML data frames:
 
-XML_final_df["Node_ID"] = XML_final_df["Node_ID"].astype(int)
-XML_final_df["X"] = XML_final_df["X"].astype(int)
-XML_final_df["Y"] = XML_final_df["Y"].astype(int)
-XML_final_df["Z"] = XML_final_df["Z"].astype(int)
+processed_df["Node_ID"] = processed_df["Node_ID"].astype(int)
+processed_df["X"] = processed_df["X"].astype(int)
+processed_df["Y"] = processed_df["Y"].astype(int)
+processed_df["Z"] = processed_df["Z"].astype(int)
 
 
 endpoints_position_df.rename(columns={"Node ID": "Node_ID", "x":"X", "y":"Y", "z":"Z"},inplace = True)
@@ -401,7 +401,7 @@ endpoints_position_df["Node_ID"] = endpoints_position_df["Node_ID"].astype(int)
 endpoints_position_df["X"] = endpoints_position_df["X"].astype(int)
 endpoints_position_df["Y"] = endpoints_position_df["Y"].astype(int)
 endpoints_position_df["Z"] = endpoints_position_df["Z"].astype(int)
-merged_endpoints_df = pd.merge(XML_final_df, endpoints_position_df, on=["Node_ID", "X", "Y", "Z"], how="inner")
+merged_endpoints_df = pd.merge(processed_df, endpoints_position_df, on=["Node_ID", "X", "Y", "Z"], how="inner")
 
 end_nodes = merged_endpoints_df["Node_ID"].tolist()
 
@@ -451,6 +451,8 @@ for skeleton in skeleton_list_df:
             class_lists.append("Apical")
         elif row < avg_ED:
             class_lists.append("Basal")
+        elif row == 0:
+            class_lists.append("Soma")
     # Merge Euclidean Distance lists for each skeleton into one list:
     for ed in ed_lists:
         final_ed_list.append(ed)
@@ -459,13 +461,11 @@ for skeleton in skeleton_list_df:
         final_class_list.append(lists)
 
 # Re-combine skeleton data frames into on data frame:
-final_classification_df = pd.concat(skeletons.values(), ignore_index=True)
+processed_df = pd.concat(skeletons.values(), ignore_index=True)
 
 # Append Euclidean Distance and Classification values to columns in data frame:
-final_classification_df['Euclidean_Distance_From_Soma'] = final_ed_list
-final_classification_df['Classification'] = final_class_list
-
-final_classification_df.drop(['Skeleton_ID', 'Skeleton_Comment', 'X', 'Y', 'Z', 'Radius', 'Node_Comment', 'Euclidean_Distance_From_Soma'], axis=1, inplace=True)
+processed_df['Euclidean_Distance_From_Soma'] = final_ed_list
+processed_df['Classification'] = final_class_list
 
 # Make dictionary from nodes and associated dendrite levels:
 sholl_dict = {end_nodes[i]: final_class_list[i] for i in range(len(end_nodes))}
